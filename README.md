@@ -44,7 +44,7 @@ uv run client.py ./server/mcp.py
 
 # Install required packages
 ```bash
-uv add mcp anthropic python-dotenv
+uv add mcp anthropic python-dotenv nest_asyncio
 ```
 
 ## Absolute path
