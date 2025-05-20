@@ -39,7 +39,7 @@ uv run client.py path/to/build/index.js # node server
 
 ## Relative path
 ```bash
-uv run client.py ./server/weather.py
+uv run client.py ./server/mcp.py
 ```
 
 # Install required packages
@@ -49,11 +49,11 @@ uv add mcp anthropic python-dotenv
 
 ## Absolute path
 ```bash
-uv run client.py /Users/username/projects/mcp-server/weather.py
+uv run client.py /Users/username/projects/mcp/mcp.py
 ```
 
 ## Windows path (either format works)
 ```bash
-uv run client.py C:/projects/mcp-server/weather.py
-uv run client.py C:\\projects\\mcp-server\\weather.py
+uv run client.py C:/projects/mcp/mcp.py
+uv run client.py C:\\projects\\mcp\\mcp.py
 ```

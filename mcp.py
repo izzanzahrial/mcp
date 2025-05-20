@@ -9,6 +9,15 @@ from typing import List
 # Initialize FastMCP server
 mcp = FastMCP("my-mcp")
 
+# Create an MCP server with increased timeout
+# mcp = FastMCP(
+#     name="count-r",
+#     host="127.0.0.1",
+#     port=5000,
+#     # Add this to make the server more resilient
+#     timeout=30  # Increase timeout to 30 seconds
+# )
+
 # Constants
 NWS_API_BASE = "https://api.weather.gov"
 USER_AGENT = "weather-app/1.0"
