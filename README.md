@@ -7,7 +7,7 @@ source .venv/bin/activate
 
 ## Install dependencies
 ```bash
-uv add "mcp[cli]" httpx
+uv add mcp httpx arxiv
 ```
 
 ## To launch it by running 
@@ -25,6 +25,11 @@ touch .env
 ANTHROPIC_API_KEY=<your_key_here>
 ```
 
+## To test your MCP Server you can use mcp inspector
+```bash
+npx @modelcontextprotocol/inspector uv run mcp.py
+```
+
 # MCP Client
 ## To run your client with any MCP server:
 ```bash
@@ -35,6 +40,11 @@ uv run client.py path/to/build/index.js # node server
 ## Relative path
 ```bash
 uv run client.py ./server/weather.py
+```
+
+# Install required packages
+```bash
+uv add mcp anthropic python-dotenv
 ```
 
 ## Absolute path
