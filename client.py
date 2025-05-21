@@ -2,6 +2,10 @@ from typing import List, TypedDict, Dict
 from contextlib import AsyncExitStack
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
+# use this instead if you want to connect to remote servers via sse
+# from mcp.client.sse import sse_client
+# or use this instead if you want to connect to remote servers via streamable http
+# from mcp.client.streamable_http import streamablehttp_client
 from anthropic import Anthropic
 from dotenv import load_dotenv
 import asyncio
@@ -32,11 +36,24 @@ class MCPClient:
             server_params = StdioServerParameters(**server_config)
             stdio_transport = await self.exit_stack.enter_async_context(
                 stdio_client(server_params)
-            ) # new
+            )
             read, write = stdio_transport
+
+            # use this instead if you want to connect to remote servers via sse
+            # sse_transport = await self.exit_stack.enter_async_context(
+            #        sse_client(url= "server_url/sse" )
+            #     )
+            # read, write = sse_transport
+
+            # or use this instead if you want to connect to remote servers via streamable http
+            # streamable_transport = await self.exit_stack.enter_async_context(
+            #        streamablehttp_client(url= "server_url/mcp/" )
+            #     )
+            # read, write = streamable_transport
+
             session = await self.exit_stack.enter_async_context(
                 ClientSession(read, write)
-            ) # new
+            )
             await session.initialize()
             self.sessions.append(session)
             

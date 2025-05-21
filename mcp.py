@@ -9,6 +9,12 @@ from typing import List
 # Initialize FastMCP server
 mcp = FastMCP("my-mcp")
 
+# # Stateful server (maintains session state)
+# mcp = FastMCP("my-mcp")
+
+# Stateless server (no session persistence)
+# mcp = FastMCP("my-mcp", stateless_http=True)
+
 # Create an MCP server with increased timeout
 # mcp = FastMCP(
 #     name="count-r",
@@ -283,3 +289,7 @@ def generate_search_prompt(topic: str, num_papers: int = 5) -> str:
 if __name__ == "__main__":
     # Initialize and run the server
     mcp.run(transport='stdio')
+
+    # Chose one of this options if you want to run the server in deploy mode
+    # mcp.run(transport="streamable-http")
+    # mcp.run(transport='sse')

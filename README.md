@@ -57,3 +57,16 @@ uv run client.py /Users/username/projects/mcp/mcp.py
 uv run client.py C:/projects/mcp/mcp.py
 uv run client.py C:\\projects\\mcp\\mcp.py
 ```
+
+# Deployment
+## If the server using pip instead of uv
+```bash
+uv pip compile pyproject.toml > requirements.txt
+``` 
+
+## To make sure the server use the right python version
+```bash
+echo "python-3.11.11" > runtime.txt
+```
+
+## Head out to your server with SSE endpoint
