@@ -21,6 +21,7 @@ class MCPClient:
         self.exit_stack = AsyncExitStack()
         self.anthropic = Anthropic()
         self.available_tools: List[ToolDefinition] = []
+        self.available_prompts = []
         self.tool_to_session: Dict[str, ClientSession] = {}
     # methods will go here
 
@@ -39,18 +40,44 @@ class MCPClient:
             await session.initialize()
             self.sessions.append(session)
             
-            # List available tools for this session
-            response = await session.list_tools()
-            tools = response.tools
-            print(f"\nConnected to {server_name} with tools:", [t.name for t in tools])
+            try:
+                # List available tools for this session
+                response = await session.list_tools()
+                tools = response.tools
+                print(f"\nConnected to {server_name} with tools:", [t.name for t in tools])
+                for tool in tools: # new
+                    self.tool_to_session[tool.name] = session
+                    self.available_tools.append({
+                        "name": tool.name,
+                        "description": tool.description,
+                        "input_schema": tool.inputSchema
+                    })
+
+                # List available prompts for this session
+                prompts_response = await session.list_prompts()
+                if prompts_response and prompts_response.prompts:
+                    prompts = prompts_response.prompts
+                    print(f"\nConnected to {server_name} with prompts:", [p.name for p in prompts])
+                    for prompt in prompts:
+                        self.sessions[prompt.name] = session
+                        self.available_prompts.append({
+                            "name": prompt.name,
+                            "description": prompt.description,
+                            "arguments": prompt.arguments
+                        })
+                
+                # List available resources for this session
+                resources_response = await session.list_resources()
+                if resources_response and resources_response.resources:
+                    resources = resources_response.resources
+                    print(f"\nConnected to {server_name} with resources:", [r.uri for r in resources])
+                    for resource in resources:
+                        resource_uri = str(resource.uri)
+                        self.sessions[resource_uri] = session
             
-            for tool in tools: # new
-                self.tool_to_session[tool.name] = session
-                self.available_tools.append({
-                    "name": tool.name,
-                    "description": tool.description,
-                    "input_schema": tool.inputSchema
-                })
+            except Exception as e:
+                print(f"Error {e}")
+
         except Exception as e:
             print(f"Failed to connect to {server_name}: {e}")
 
@@ -77,23 +104,24 @@ class MCPClient:
             }
         ]
 
-        # Initial Claude API call
-        response = self.anthropic.messages.create(max_tokens = 2024,
-                                        model = 'claude-3-7-sonnet-20250219', 
-                                        tools = self.available_tools, # tools exposed to the LLM
-                                        messages = messages)
-
         # Process response and handle tool calls
-        process_query = True
-        while process_query:
+        while True:
+            response = self.anthropic.messages.create(
+                max_tokens = 2024,
+                model = 'claude-3-7-sonnet-20250219', 
+                tools = self.available_tools,
+                messages = messages
+            )
+            
             assistant_content = []
+            has_tool_use = False
+
             for content in response.content:
                 if content.type =='text':
                     print(content.text)
                     assistant_content.append(content)
-                    if(len(response.content) == 1):
-                        process_query= False
                 elif content.type == 'tool_use':
+                    has_tool_use = True
                     assistant_content.append(content)
                     messages.append({'role':'assistant', 'content':assistant_content})
                     tool_id = content.id
@@ -102,39 +130,150 @@ class MCPClient:
     
                     print(f"Calling tool {tool_name} with args {tool_args}")
                     
-                    # Call a tool
-                    session = self.tool_to_session[tool_name] # new
+                    # Get session and call tool
+                    session = self.tool_to_session[tool_name]
+                    if not session:
+                        print(f"Tool '{content.name}' not found.")
+                        break
+
                     result = await session.call_tool(tool_name, arguments=tool_args)
-                    messages.append({"role": "user", 
-                                    "content": [
-                                        {
-                                            "type": "tool_result",
-                                            "tool_use_id":tool_id,
-                                            "content": result.content
-                                        }
-                                    ]
-                                    })
-                    response = self.anthropic.messages.create(max_tokens = 2024,
-                                    model = 'claude-3-7-sonnet-20250219', 
-                                    tools = self.available_tools,
-                                    messages = messages) 
-                    
-                    if(len(response.content) == 1 and response.content[0].type == "text"):
-                        print(response.content[0].text)
-                        process_query= False
+                    messages.append({
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id":tool_id,
+                                "content": result.content
+                            }
+                        ]
+                    })
+    
+            # Exit loop if no tool was used
+            if not has_tool_use:
+                break
+    
+    async def get_resource(self, resource_uri):
+        session = self.sessions.get(resource_uri)
+        
+        # Fallback for papers URIs - try any papers resource session
+        if not session and resource_uri.startswith("papers://"):
+            for uri, sess in self.sessions.items():
+                if uri.startswith("papers://"):
+                    session = sess
+                    break
+            
+        if not session:
+            print(f"Resource '{resource_uri}' not found.")
+            return
+        
+        try:
+            result = await session.read_resource(uri=resource_uri)
+            if result and result.contents:
+                print(f"\nResource: {resource_uri}")
+                print("Content:")
+                print(result.contents[0].text)
+            else:
+                print("No content available.")
+        except Exception as e:
+            print(f"Error: {e}")
+    
+    async def list_prompts(self):
+        """List all available prompts."""
+        if not self.available_prompts:
+            print("No prompts available.")
+            return
+        
+        print("\nAvailable prompts:")
+        for prompt in self.available_prompts:
+            print(f"- {prompt['name']}: {prompt['description']}")
+            if prompt['arguments']:
+                print(f"  Arguments:")
+                for arg in prompt['arguments']:
+                    arg_name = arg.name if hasattr(arg, 'name') else arg.get('name', '')
+                    print(f"    - {arg_name}")
+    
+    async def execute_prompt(self, prompt_name, args):
+        """Execute a prompt with the given arguments."""
+        session = self.sessions.get(prompt_name)
+        if not session:
+            print(f"Prompt '{prompt_name}' not found.")
+            return
+        
+        try:
+            result = await session.get_prompt(prompt_name, arguments=args)
+            if result and result.messages:
+                prompt_content = result.messages[0].content
+                
+                # Extract text from content (handles different formats)
+                if isinstance(prompt_content, str):
+                    text = prompt_content
+                elif hasattr(prompt_content, 'text'):
+                    text = prompt_content.text
+                else:
+                    # Handle list of content items
+                    text = " ".join(item.text if hasattr(item, 'text') else str(item) 
+                                  for item in prompt_content)
+                
+                print(f"\nExecuting prompt '{prompt_name}'...")
+                await self.process_query(text)
+        except Exception as e:
+            print(f"Error: {e}")
     
 
     async def chat_loop(self):
         """Run an interactive chat loop"""
         print("\nMCP Client Started!")
         print("Type your queries or 'quit' to exit.")
-
+        print("Use @folders to see available topics")
+        print("Use @<topic> to search papers in that topic")
+        print("Use /prompts to list available prompts")
+        print("Use /prompt <name> <arg1=value1> to execute a prompt")
+        
         while True:
             try:
                 query = input("\nQuery: ").strip()
-
+                if not query:
+                    continue
+                
                 if query.lower() == 'quit':
                     break
+
+                # Check for @resource syntax first
+                if query.startswith('@'):
+                    # Remove @ sign  
+                    topic = query[1:]
+                    if topic == "folders":
+                        resource_uri = "papers://folders"
+                    else:
+                        resource_uri = f"papers://{topic}"
+                    await self.get_resource(resource_uri)
+                    continue
+
+                # Check for /command syntax
+                if query.startswith('/'):
+                    parts = query.split()
+                    command = parts[0].lower()
+                    
+                    if command == '/prompts':
+                        await self.list_prompts()
+                    elif command == '/prompt':
+                        if len(parts) < 2:
+                            print("Usage: /prompt <name> <arg1=value1> <arg2=value2>")
+                            continue
+                        
+                        prompt_name = parts[1]
+                        args = {}
+                        
+                        # Parse arguments
+                        for arg in parts[2:]:
+                            if '=' in arg:
+                                key, value = arg.split('=', 1)
+                                args[key] = value
+                        
+                        await self.execute_prompt(prompt_name, args)
+                    else:
+                        print(f"Unknown command: {command}")
+                    continue
 
                 response = await self.process_query(query)
                 print("\n" + response)
