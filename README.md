@@ -13,7 +13,7 @@
 
 3. To launch it by running 
     ```bash
-    uv --directory /ABSOLUTE/PATH/TO/PARENT/FOLDER/mcp run mcp.py
+    uv --directory /ABSOLUTE/PATH/TO/PARENT/FOLDER/mcp run server.py
     ```
 
 4. Create .env file
@@ -28,7 +28,7 @@
 
 6. To test your MCP Server you can use mcp inspector
     ```bash
-    npx @modelcontextprotocol/inspector uv run mcp.py
+    npx @modelcontextprotocol/inspector uv run server.py
     ```
 
 # MCP Client
@@ -44,17 +44,17 @@
     ```
     Relative path
     ```bash
-    uv run client.py ./server/mcp.py
+    uv run client.py ./server/server.py
     ```
     Absolute path
     ```bash
-    uv run client.py /Users/username/projects/mcp/mcp.py
+    uv run client.py /Users/username/projects/mcp/server.py
     ```
     
     Windows path (either format works)
     ```bash
-    uv run client.py C:/projects/mcp/mcp.py
-    uv run client.py C:\\projects\\mcp\\mcp.py
+    uv run client.py C:/projects/mcp/server.py
+    uv run client.py C:\\projects\\mcp\\server.py
     ```
 
 # Deployment
@@ -66,4 +66,11 @@
 2. Make sure the server use the right python version
     ```bash
     echo "python-3.11.11" > runtime.txt
+    ```
+
+3. Input the required environment variables
+
+4. Run the mcp server
+    ```bash
+    python server.py
     ```

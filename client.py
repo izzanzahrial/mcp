@@ -21,7 +21,7 @@ class ToolDefinition(TypedDict):
 class MCPClient:
     def __init__(self):
         # Initialize session and client objects
-        self.session: List[ClientSession] = None
+        self.sessions: List[ClientSession] = []
         self.exit_stack = AsyncExitStack()
         self.anthropic = Anthropic()
         self.available_tools: List[ToolDefinition] = []

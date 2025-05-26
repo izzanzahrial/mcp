@@ -12,7 +12,7 @@
         
         "my-mcp": {
             "command": "uv",
-            "args": ["run", "mcp.py"]
+            "args": ["run", "server.py"]
         },
         
         "fetch": {
