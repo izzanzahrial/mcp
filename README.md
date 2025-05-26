@@ -74,3 +74,7 @@
     ```bash
     python server.py
     ```
+
+references :
+- https://www.youtube.com/watch?v=wa_A0qY0anA
+- https://learn.deeplearning.ai/courses/mcp-build-rich-context-ai-apps-with-anthropic/lesson/fkbhh/introduction

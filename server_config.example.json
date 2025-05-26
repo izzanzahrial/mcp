@@ -1,13 +1,16 @@
 {
     "mcpServers": {
-        "weather": {
+        "my-mcp": {
             "command": "uv",
             "args": [
                 "--directory",
-                "/ABSOLUTE/PATH/TO/PARENT/FOLDER/weather",
+                "/ABSOLUTE/PATH/TO/PARENT/FOLDER/server",
                 "run",
-                "weather.py"
-            ]
+                "server.py"
+            ],
+            "host": "127.0.0.1",
+            "port": 8080,
+            "timeout": 30000
         }
     }
 }
